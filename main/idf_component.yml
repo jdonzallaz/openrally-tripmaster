@@ -1,0 +1,8 @@
+## IDF Component Manager Manifest File
+dependencies:
+  espressif/button: "^3.5.0"
+  igrr/libnmea: "^0.2.1"
+  m5stack/m5unified: "^0.2.0"
+  m5stack/m5gfx: "^0.2.0"
+  idf:
+    version: ">=4.1.0"
