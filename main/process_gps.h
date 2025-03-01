@@ -1,10 +1,11 @@
 #pragma once
-
+#include <M5Unified.h>
 #include <stdint.h>
 
 #include "constants.h"
 #include "driver/uart.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "state.h"
 #include "tinygps++/TinyGPS++.cpp"
 
@@ -29,9 +30,22 @@ void gpsProcess(void *arg) {
     uart_param_config(GPS_UART_PORT_NUM, &uart_config);
     uart_set_pin(GPS_UART_PORT_NUM, GPS_UART_TX_PIN, GPS_UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
+    // Mode for distance calculation (GPS or wheel sensor). We only change state if the mode is GPS.
+    DistanceMode mode = sharedState.getDistanceMode();
+
+    // Register as observer for mode changes
+    sharedState.registerModeObserver(xTaskGetCurrentTaskHandle());
+
     // Loop forever while processing GPS data
     float latitude, longitude;
     while (true) {
+        // On notification, update the mode from the shared state
+        uint32_t receivedMode{0};
+        if (xTaskNotifyWait(0, 0, &receivedMode, 0) == pdPASS) {
+            M5_LOGD("Task `GPS` received a notification");
+            mode = static_cast<DistanceMode>(receivedMode);
+        }
+
         // Read data from UART
         int len = uart_read_bytes(GPS_UART_PORT_NUM, data, (GPS_UART_BUFFER_SIZE - 1), 20 / portTICK_PERIOD_MS);
 

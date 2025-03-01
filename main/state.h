@@ -7,6 +7,7 @@
 #include "constants.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "nvs.h"
 
 /** Saveable value template, with key for storage, value, and whether it's dirty and must be saved to storage.  */
@@ -69,6 +70,10 @@ class SharedState {
 
     // Mutex for state access
     SemaphoreHandle_t mutex;
+
+    // Observers for mode and wheel size changes
+    TaskHandle_t modeObservers[STATE_MAX_OBSERVERS]{nullptr};
+    TaskHandle_t wheelSizeObservers[STATE_MAX_OBSERVERS]{nullptr};
 
     // Saving variables
     bool isRiding{false};
@@ -383,6 +388,14 @@ class SharedState {
         if (xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
             this->distanceMode.value = distanceMode;
             this->distanceMode.isDirty = isDirty = true;
+
+            // Notify all registered tasks for mode change
+            for (TaskHandle_t task : modeObservers) {
+                if (task != nullptr) {
+                    xTaskNotify(task, distanceMode, eSetValueWithOverwrite);
+                }
+            }
+
             xSemaphoreGive(mutex);
         }
     }
@@ -404,6 +417,14 @@ class SharedState {
                 wheelSize.value += size;
             }
             this->wheelSize.isDirty = isDirty = true;
+
+            // Notify all registered tasks for wheel size change
+            for (TaskHandle_t task : wheelSizeObservers) {
+                if (task != nullptr) {
+                    xTaskNotify(task, wheelSize.value, eSetValueWithOverwrite);
+                }
+            }
+
             xSemaphoreGive(mutex);
         }
     }
@@ -450,5 +471,35 @@ class SharedState {
             xSemaphoreGive(mutex);
         }
         return localCopy;
+    }
+
+    // Register observer for mode changes
+    bool registerModeObserver(TaskHandle_t task) {
+        if (xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
+            for (int i = 0; i < STATE_MAX_OBSERVERS; i++) {
+                if (modeObservers[i] == nullptr) {
+                    modeObservers[i] = task;
+                    xSemaphoreGive(mutex);
+                    return true;
+                }
+            }
+            xSemaphoreGive(mutex);
+        }
+        return false;  // Observer list is full
+    }
+
+    // Register observer for wheel size changes
+    bool registerWheelSizeObserver(TaskHandle_t task) {
+        if (xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
+            for (int i = 0; i < STATE_MAX_OBSERVERS; i++) {
+                if (wheelSizeObservers[i] == nullptr) {
+                    wheelSizeObservers[i] = task;
+                    xSemaphoreGive(mutex);
+                    return true;
+                }
+            }
+            xSemaphoreGive(mutex);
+        }
+        return false;  // Observer list is full
     }
 } sharedState;
