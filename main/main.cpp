@@ -7,6 +7,7 @@
 #include "process_buttons.h"
 #include "process_display.h"
 #include "process_gps.h"
+#include "process_temperature.h"
 #include "state.h"
 #include "storage.h"
 
@@ -39,5 +40,12 @@ extern "C" void app_main() {
                                      BUTTONS_PROCESS_PRIORITY, NULL, BUTTONS_PROCESS_CORE);
     if (result != pdPASS) {
         M5_LOGE("Failed to create ButtonsProcess %s", esp_err_to_name(result));
+    }
+
+    // Start the temperature process
+    result = xTaskCreatePinnedToCore(TemperatureProcess, "TemperatureProcess", TEMPERATURE_PROCESS_STACK_DEPTH, NULL,
+                                     TEMPERATURE_PROCESS_PRIORITY, NULL, TEMPERATURE_PROCESS_CORE);
+    if (result != pdPASS) {
+        M5_LOGE("Failed to create TemperatureProcess %s", esp_err_to_name(result));
     }
 }
