@@ -26,6 +26,12 @@
 #define BUTTON_INCREMENT_DISTANCE_GPIO 0
 #define BUTTON_INCREMENT_DISTANCE_M 10.0f
 
+// ===== Magnetic =====
+#define MAGNETIC_LOOP_DELAY_MS 5000  // TODO: set more frequent update on magnetic loop
+#define MAGNETIC_PROCESS_CORE 1
+#define MAGNETIC_PROCESS_PRIORITY 3
+#define MAGNETIC_PROCESS_STACK_DEPTH 1024 * 8
+
 // ===== Temperature =====
 #define TEMPERATURE_LOOP_DELAY_MS 10000
 #define TEMPERATURE_PROCESS_CORE 1
