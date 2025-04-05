@@ -105,11 +105,11 @@ void drawDistanceBig(uint8_t distHundreds, uint8_t distTensUnits, uint8_t distDe
 /** Draw the distance on the screen */
 void drawDistance(UiDistanceSize size) {
     // Get and convert distance for printing
-    float stageDistance = sharedState.getStageDistance() / 1000;                       // 123.4567
+    float stageDistance = std::round(sharedState.getStageDistance() / 10) / 100;       // 123456.789 -> 123.45
     uint8_t distInt = static_cast<uint8_t>(stageDistance);                             // 123
     uint8_t distHundreds = distInt / 100;                                              // 1
     uint8_t distTensUnits = distInt % 100;                                             // 23
-    float distDecimal = stageDistance - distInt;                                       // 0.4567
+    float distDecimal = stageDistance - distInt;                                       // 0.45
     uint8_t distDecimal2places = static_cast<uint8_t>(std::round(distDecimal * 100));  // 45
 
     // Select the drawing function based on the size
