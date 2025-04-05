@@ -16,8 +16,8 @@ typedef uint8_t byte;
 // Add missing math functions
 #include <math.h>
 #define TWO_PI M_TWOPI
-#define degrees(x) (x * 180 / M_PI)
-#define radians(x) (x * M_PI / 180)
-#define sq(x) (x * x)
+#define degrees(x) ((x) * 180 / M_PI)
+#define radians(x) ((x) * M_PI / 180)
+#define sq(x) ((x) * (x))
 
 #endif
