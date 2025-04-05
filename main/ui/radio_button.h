@@ -63,7 +63,7 @@ class RadioButton {
         auto touch = M5.Touch.getDetail();  // TODO: pass by parameter (remove include)
 
         // Ignore touches outside the button area
-        if (!isContained(x, y, w, h, touch.base.x, touch.base.y, 5)) {
+        if (!isContained(x, y, w, h, touch.base.x, touch.base.y, 10)) {
             return;
         }
 
