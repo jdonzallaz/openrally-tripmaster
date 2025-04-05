@@ -332,9 +332,9 @@ void initParameterComponents(uint8_t brightness) {
         {WHEEL_SENSOR, "Wheel sensor"},
         {GPS, "GPS"},
     };
-    radioButtonDistanceMode.setup(options, WHEEL_SENSOR);
+    radioButtonDistanceMode.setup(options, sharedState.getDistanceMode());
     radioButtonDistanceMode.setChangeHandler(
-        [](uint8_t mode) { sharedState.setDistanceMode(static_cast<DistanceMode>(mode)); });
+        [](uint8_t newMode) { sharedState.setDistanceMode(static_cast<DistanceMode>(newMode)); });
 
     // Wheel size
     buttonWheelSizeIncrease.setClickHandler([]() { sharedState.addToWheelSize(1); });
