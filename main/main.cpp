@@ -20,6 +20,7 @@ extern "C" void app_main() {
 
     initStorage();
     sharedState.loadData();
+    storageProcess();
 
     // Start the display process
     BaseType_t result = xTaskCreatePinnedToCore(displayProcess, "DisplayProcess", DISPLAY_PROCESS_STACK_DEPTH, NULL,

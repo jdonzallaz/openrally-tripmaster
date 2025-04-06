@@ -31,7 +31,7 @@ enum DistanceMode : uint8_t {
 
 class SharedState {
     // Distance traveled in meters in the stage. Saved. Configurable (+, -, reset).
-    SaveableValue<float> stageDistance{123.45f, "stageDistance"};
+    SaveableValue<float> stageDistance{0.0f, "stageDistance"};
     // Total distance traveled in meters. Saved.
     SaveableValue<float> totalDistance{0.0f, "totalDistance"};
 
@@ -49,7 +49,6 @@ class SharedState {
     // Current time
     Time time;
     // Timezone offset in hours. Saved. Configurable (+, -).
-    // int8_t timezone{0};
     SaveableValue<int8_t> timezone{0, "timezone"};
 
     // Temperature in degrees celsius
@@ -76,9 +75,11 @@ class SharedState {
     TaskHandle_t wheelSizeObservers[STATE_MAX_OBSERVERS]{nullptr};
 
     // Saving variables
+    // Flag: is currently riding - moving at speed >~ 25km/h
     bool isRiding{false};
     float lastDirtyDistance{0.0f};
     uint64_t lastSaveTime{0ULL};
+    esp_timer_handle_t debouncedSaveTimer{nullptr};
 
     /**
      * Write the state to NVS (only if the value is dirty).
@@ -128,6 +129,36 @@ class SharedState {
         nvs_get_u8(nvsHandle, page.key, &page.value);
     }
 
+    /**
+     * Create a debounced timer if it doesn't exist. This timer is used to save the state after a delay.
+     */
+    void createDebouncedTimerIfNotExists() {
+        if (debouncedSaveTimer == nullptr) {
+            const esp_timer_create_args_t debouncedSaveTimerArgs = {
+                .callback = [](void* arg) { static_cast<SharedState*>(arg)->saveData(STATE_DEBOUNCE_DELAY_US); },
+                .arg = this,
+                .name = "debouncedSave",
+            };
+            ESP_ERROR_CHECK(esp_timer_create(&debouncedSaveTimerArgs, &debouncedSaveTimer));
+        }
+    }
+
+    /**
+     * Set the saveable state as modified. This will trigger a save after a delay.
+     */
+    void setSaveableStateModified() {
+        isDirty = true;
+
+        createDebouncedTimerIfNotExists();
+
+        if (esp_timer_is_active(debouncedSaveTimer)) {
+            esp_timer_stop(debouncedSaveTimer);
+        }
+
+        M5_LOGD("State: Debouncing save");
+        esp_timer_start_once(debouncedSaveTimer, STATE_DEBOUNCE_DELAY_US);
+    }
+
    public:
     SharedState() {
         mutex = xSemaphoreCreateMutex();
@@ -155,6 +186,8 @@ class SharedState {
             M5_LOGD("State: Too early or not dirty -> no saving");
             return;
         }
+
+        M5_LOGD("State: Saving");
 
         // Open NVS
         nvs_handle_t nvsHandle;
@@ -209,11 +242,11 @@ class SharedState {
             float oldStageDistance = stageDistance.value;
             stageDistance.value += distance;
             stageDistance.value = stageDistance.value < 0.0f ? 0.0f : stageDistance.value;
-            if (distance > 0) {
+            if (distance > STATE_DISTANCE_EPSILON) {
                 totalDistance.value += distance;
                 totalDistance.isDirty = true;
             }
-            M5_LOGI("Set distance: %f to %f", oldStageDistance, stageDistance.value);
+            M5_LOGD("Set distance: %f to %f", oldStageDistance, stageDistance.value);
             if (abs(stageDistance.value - oldStageDistance) >= STATE_DISTANCE_EPSILON) {
                 stageDistance.isDirty = isDirty = true;
             }
@@ -223,8 +256,11 @@ class SharedState {
 
     void resetStageDistance() {
         if (xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
-            stageDistance.value = 0.0f;
-            stageDistance.isDirty = isDirty = true;
+            if (stageDistance.value > 0.01f) {
+                stageDistance.value = 0.0f;
+                stageDistance.isDirty = true;
+                setSaveableStateModified();
+            }
             xSemaphoreGive(mutex);
         }
     }
@@ -265,11 +301,28 @@ class SharedState {
 
     void setSpeed(float speed) {
         if (speed < STATE_MAX_VALID_SPEED && xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
+            // Set new speed
             this->speed = speed;
+
+            // Set max speed
             if (speed > maxSpeed.value) {
                 maxSpeed.value = speed;
                 maxSpeed.isDirty = isDirty = true;
             }
+
+            // Save when stopping after going over "riding" speed
+            if (isRiding && speed < STATE_SPEED_EPSILON) {
+                M5_LOGD("State: Stopped after riding: %f", speed);
+                isRiding = false;
+                saveData();
+            }
+
+            // Set riding flag if going over "riding" speed
+            if (!isRiding && speed > STATE_RIDING_SPEED) {
+                M5_LOGD("State: Riding speed reached: %f", speed);
+                isRiding = true;
+            }
+
             xSemaphoreGive(mutex);
         }
     }
@@ -345,7 +398,8 @@ class SharedState {
     void setTimezone(int8_t timezone) {
         if (xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
             this->timezone.value = timezone;
-            isDirty = true;
+            this->timezone.isDirty = true;
+            setSaveableStateModified();
             xSemaphoreGive(mutex);
         }
     }
@@ -354,7 +408,8 @@ class SharedState {
         if (xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
             timezone.value += hour;
             timezone.value = timezone.value < -12 ? -12 : timezone.value > 14 ? 14 : timezone.value;
-            timezone.isDirty = isDirty = true;
+            timezone.isDirty = true;
+            setSaveableStateModified();
             xSemaphoreGive(mutex);
         }
     }
@@ -387,7 +442,8 @@ class SharedState {
     void setDistanceMode(DistanceMode distanceMode) {
         if (xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
             this->distanceMode.value = distanceMode;
-            this->distanceMode.isDirty = isDirty = true;
+            this->distanceMode.isDirty = true;
+            setSaveableStateModified();
 
             // Notify all registered tasks for mode change
             for (TaskHandle_t task : modeObservers) {
@@ -416,7 +472,8 @@ class SharedState {
             } else {
                 wheelSize.value += size;
             }
-            this->wheelSize.isDirty = isDirty = true;
+            this->wheelSize.isDirty = true;
+            setSaveableStateModified();
 
             // Notify all registered tasks for wheel size change
             for (TaskHandle_t task : wheelSizeObservers) {
@@ -442,7 +499,8 @@ class SharedState {
         if (xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
             this->brightness.value = brightness;
             this->brightness.value = this->brightness.value > 100 ? 100 : this->brightness.value;
-            this->brightness.isDirty = isDirty = true;
+            this->brightness.isDirty = true;
+            setSaveableStateModified();
             xSemaphoreGive(mutex);
         }
     }
@@ -459,7 +517,7 @@ class SharedState {
     void setPage(uint8_t page) {
         if (xSemaphoreTake(mutex, STATE_SEMAPHORE_TIMEOUT)) {
             this->page.value = page;
-            this->page.isDirty = isDirty = true;
+            this->page.isDirty = true;
             xSemaphoreGive(mutex);
         }
     }
@@ -503,3 +561,18 @@ class SharedState {
         return false;  // Observer list is full
     }
 } sharedState;
+
+/**
+ * Process for the storage. This process saves the state to NVS at regular intervals.
+ * @param arg Unused.
+ */
+void storageProcess() {
+    // Create and start the periodic timer -> save every 3min
+    const esp_timer_create_args_t periodic_save_timer_args = {
+        .callback = [](void* arg) { sharedState.saveData(); },
+        .name = "periodicSave",
+    };
+    esp_timer_handle_t periodic_save_timer;
+    ESP_ERROR_CHECK(esp_timer_create(&periodic_save_timer_args, &periodic_save_timer));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_save_timer, STATE_SAVE_LOOP_DELAY_US));
+}

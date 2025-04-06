@@ -52,12 +52,16 @@
 
 // ===== State =====
 #define STATE_DISTANCE_EPSILON 0.5f  // Comparison with epsilon good enough for our use case
+#define STATE_SPEED_EPSILON 0.5f
+#define STATE_RIDING_SPEED 15.0f
 #define STATE_SEMAPHORE_TIMEOUT pdMS_TO_TICKS(50)
 #define STATE_MAX_VALID_SPEED 150.0f
 #define STATE_MIN_SAVE_DELAY_US 10'000'000
 #define STATE_DEFAULT_WHEEL_SIZE 2000
 #define STATE_DEFAULT_BRIGHTNESS 100
 #define STATE_MAX_OBSERVERS 2
+#define STATE_SAVE_LOOP_DELAY_US 300'000'000  // 3min
+#define STATE_DEBOUNCE_DELAY_US 5'000'000     // 5s
 
 // ===== Touch =====
 #define SWIPE_VERTICAL_THRESHOLD 70
