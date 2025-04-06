@@ -52,6 +52,10 @@ void gpsProcess(void *arg) {
         if (xTaskNotifyWait(0, 0, &receivedMode, 0) == pdPASS) {
             M5_LOGD("Task `GPS` received a notification");
             mode = static_cast<DistanceMode>(receivedMode);
+
+            if (mode == GPS) {
+                timeOldPosition = 0;  // Reset timeOldPosition when switching to GPS mode
+            }
         }
 
         // Read data from UART
