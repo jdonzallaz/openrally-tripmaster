@@ -11,6 +11,14 @@
 
 TinyGPSPlus gps;
 
+struct Position {
+    float latitude;
+    float longitude;
+};
+
+Position oldPosition{0.0f, 0.0f};
+uint64_t timeOldPosition{0};  // us
+
 /**
  * Process for the GPS module. This process listens for GPS data on the UART port and updates the shared state.
  * @param arg Unused.
@@ -75,14 +83,31 @@ void gpsProcess(void *arg) {
             }
 
             // Latitude, longitude coordinates
-            if (gps.location.isUpdated()) {
+            if (gps.location.isValid() && gps.location.isUpdated()) {
                 latitude = gps.location.lat();
                 longitude = gps.location.lng();
-                // TODO: Calculate distance
+
+                // Get current time to compare with last position
+                uint64_t now = esp_timer_get_time();
+                uint64_t durationSinceLastCheck = now - timeOldPosition;
+                if (mode == GPS && timeOldPosition > 0 && durationSinceLastCheck > GPS_UPDATE_MIN_TIME &&
+                    durationSinceLastCheck < GPS_UPDATE_MAX_TIME) {
+                    // Compute distance in meters
+                    float distance =
+                        TinyGPSPlus::distanceBetween(oldPosition.latitude, oldPosition.longitude, latitude, longitude);
+
+                    // Update shared state if within reasonable bounds
+                    if (distance > GPS_UPDATE_MIN_DISTANCE && distance < GPS_UPDATE_MAX_DISTANCE) {
+                        sharedState.addToStageDistance(distance);
+                    }
+                }
+
+                timeOldPosition = now;
+                oldPosition = {latitude, longitude};
             }
 
             // Speed
-            if (gps.speed.isValid() && gps.speed.isUpdated()) {
+            if (mode == GPS && gps.speed.isValid() && gps.speed.isUpdated()) {
                 sharedState.setSpeed(gps.speed.kmph());
             }
 

@@ -13,7 +13,13 @@
 #define GPS_UART_RX_PIN 13
 #define GPS_UART_TX_PIN 14
 #define GPS_UART_BUFFER_SIZE 1024
-#define GPS_UART_BAUD_RATE 9600  // Standard for ATGM336H
+// #define GPS_UART_BAUD_RATE 9600  // Standard for ATGM336H-5N
+#define GPS_UART_BAUD_RATE 115200  // Standard for ATGM336H-6N
+#define GPS_MAX_SPEED 150.0f
+#define GPS_UPDATE_MIN_DISTANCE 0.6f
+#define GPS_UPDATE_MIN_TIME (GPS_LOOP_DELAY_MS * 0.8) * 1000
+#define GPS_UPDATE_MAX_TIME 180'000'000  // 3min, account for loss of GPS signal
+#define GPS_UPDATE_MAX_DISTANCE (GPS_MAX_SPEED / 3.6f * (GPS_UPDATE_MAX_TIME/1000000))
 
 // ===== Buttons =====
 #define BUTTONS_LOOP_DELAY_MS 1000
