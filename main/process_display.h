@@ -177,10 +177,11 @@ void drawMinimalScreen(const M5Canvas& sprite) {
 void drawMainScreen() {
     display.beginTransaction();
     mainSprite.fillSprite(WHITE);
+    mainSprite.setTextColor(BLACK);
+    mainSprite.setTextDatum(top_left);
 
     // Draw small titles
     mainSprite.setFont(&DejaVu12);
-    mainSprite.setTextColor(BLACK);
     mainSprite.drawString("DIST", 10, 6);
     mainSprite.drawString("CAP", 10, 126);
 
@@ -222,11 +223,11 @@ Slider sliderBrightness;
 void drawParametersScreen() {
     display.beginTransaction();
     mainSprite.fillSprite(WHITE);
+    mainSprite.setTextColor(BLACK);
+    mainSprite.setTextDatum(top_left);
 
     // Screen title
     mainSprite.setFont(&FreeSansBold9pt7b);
-    mainSprite.setTextColor(BLACK);
-    mainSprite.setTextDatum(top_left);
     mainSprite.drawString("Parameters", 10, 6);
     mainSprite.setFont(&FreeSans9pt7b);
     mainSprite.drawString("1/2", 290, 6);
@@ -290,6 +291,7 @@ void drawInfoScreen() {
     display.beginTransaction();
     mainSprite.fillSprite(WHITE);
     mainSprite.setTextColor(BLACK);
+    mainSprite.setTextDatum(top_left);
 
     // Screen title
     mainSprite.setFont(&FreeSansBold9pt7b);
