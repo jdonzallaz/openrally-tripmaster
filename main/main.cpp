@@ -18,6 +18,8 @@ extern "C" void app_main() {
     // Delay before starting the application to allow proper initialization of the hardware
     vTaskDelay(pdMS_TO_TICKS(50));
 
+    M5.Log.setLogLevel(m5::log_target_serial, LOG_LEVEL);
+
     initStorage();
     sharedState.loadData();
     storageProcess();

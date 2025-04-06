@@ -2,6 +2,7 @@
 
 // ===== Main =====
 #define MAIN_LOOP_DELAY_MS 20  // TODO: remove - not used
+#define LOG_LEVEL ESP_LOG_INFO
 
 // ===== GPS =====
 #define GPS_LOOP_DELAY_MS 500
