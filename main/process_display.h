@@ -395,22 +395,21 @@ void displayProcess(void* arg) {
         M5.update();
         swipe.update();
 
-        // TODO: update components only if displayed
-        buttonStageIncrease.update();
-        buttonStageDecrease.update();
-        buttonStageReset.update();
-        radioButtonDistanceMode.update();
-        buttonWheelSizeIncrease.update();
-        buttonWheelSizeDecrease.update();
-        buttonTimezoneIncrease.update();
-        buttonTimezoneDecrease.update();
-        sliderBrightness.update(&swipe);
-
         // Draw according to state
         if (stateUiScreen == MAIN) {
             drawMainScreen();
         } else if (stateUiScreen == PARAMETERS) {
             if (stateUiParametersScreen == PARAMETERS_PAGE_1) {
+                buttonStageIncrease.update();
+                buttonStageDecrease.update();
+                buttonStageReset.update();
+                radioButtonDistanceMode.update();
+                buttonWheelSizeIncrease.update();
+                buttonWheelSizeDecrease.update();
+                buttonTimezoneIncrease.update();
+                buttonTimezoneDecrease.update();
+                sliderBrightness.update(&swipe);
+
                 drawParametersScreen();
             } else {
                 drawInfoScreen();
