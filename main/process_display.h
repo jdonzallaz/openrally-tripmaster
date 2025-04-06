@@ -15,6 +15,7 @@
 #include "fonts/FreeSans56pt7b.h"
 #include "fonts/icons.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "state.h"
 #include "swipe_manager.h"
 #include "ui/button.h"
@@ -379,6 +380,18 @@ void displayProcess(void* arg) {
     swipe.setSwipeHandler(swipeHandler);
 
     while (true) {
+        // On notification, update the screen state
+        if (xTaskNotifyWait(0, 0, NULL, 0) == pdPASS) {
+            M5_LOGD("Task `display` received a notification");
+            // Return to main screen if in parameters
+            if (stateUiScreen == PARAMETERS) {
+                stateUiScreen = MAIN;
+            } else {  // Change main screen if in main
+                stateUiMainScreen = stateUiMainScreen == MAIN_PAGE_1 ? MAIN_PAGE_2 : MAIN_PAGE_1;
+                sharedState.setPage(stateUiMainScreen);
+            }
+        }
+
         M5.update();
         swipe.update();
 

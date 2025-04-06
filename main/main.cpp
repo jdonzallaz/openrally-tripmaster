@@ -23,8 +23,9 @@ extern "C" void app_main() {
     storageProcess();
 
     // Start the display process
+    TaskHandle_t displayTaskHandle;
     BaseType_t result = xTaskCreatePinnedToCore(displayProcess, "DisplayProcess", DISPLAY_PROCESS_STACK_DEPTH, NULL,
-                                                DISPLAY_PROCESS_PRIORITY, NULL, DISPLAY_PROCESS_CORE);
+                                                DISPLAY_PROCESS_PRIORITY, &displayTaskHandle, DISPLAY_PROCESS_CORE);
     if (result != pdPASS) {
         M5_LOGE("Failed to create DisplayProcess %s", esp_err_to_name(result));
     }
@@ -44,7 +45,7 @@ extern "C" void app_main() {
     }
 
     // Start the buttons process
-    result = xTaskCreatePinnedToCore(buttonsProcess, "ButtonsProcess", BUTTONS_PROCESS_STACK_DEPTH, NULL,
+    result = xTaskCreatePinnedToCore(buttonsProcess, "ButtonsProcess", BUTTONS_PROCESS_STACK_DEPTH, displayTaskHandle,
                                      BUTTONS_PROCESS_PRIORITY, NULL, BUTTONS_PROCESS_CORE);
     if (result != pdPASS) {
         M5_LOGE("Failed to create ButtonsProcess %s", esp_err_to_name(result));
