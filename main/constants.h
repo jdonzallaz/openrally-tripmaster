@@ -42,10 +42,14 @@
 #define BUTTON_MENU_GPIO 32
 
 // ===== Magnetic =====
-#define MAGNETIC_LOOP_DELAY_MS 5000  // TODO: set more frequent update on magnetic loop
+#define MAGNETIC_LOOP_DELAY_MS 1000
 #define MAGNETIC_PROCESS_CORE 1
 #define MAGNETIC_PROCESS_PRIORITY 3
 #define MAGNETIC_PROCESS_STACK_DEPTH 1024 * 8
+#define MAGNETIC_SPEED_CHECK_DELAY_MS 1000  // Must be a multiple of MAGNETIC_LOOP_DELAY_MS
+#define MAGNETIC_SENSOR_PIN GPIO_NUM_25
+#define MAGNETIC_MIN_ISR_DELAY_US 20'000  // 20ms
+#define MAGNETIC_UPDATE_MAX_REVOLUTIONS (MAGNETIC_LOOP_DELAY_MS / 10)  // Maximum number of revolutions per update
 
 // ===== Temperature =====
 #define TEMPERATURE_LOOP_DELAY_MS 10000
